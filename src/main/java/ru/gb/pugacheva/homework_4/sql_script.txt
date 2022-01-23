@@ -1,0 +1,170 @@
+1. Создание схемы и таблиц в ней:
+
+CREATE SCHEMA `cinema` DEFAULT CHARACTER SET utf8 COLLATE utf8_bin ;
+
+
+CREATE TABLE `cinema`.`films` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `title` VARCHAR(255) NOT NULL,
+  `length_minutes` INT NOT NULL,
+  PRIMARY KEY (`id`));
+
+
+CREATE TABLE `cinema`.`sessions` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `film_id` INT NOT NULL,
+  `price` INT NOT NULL,
+  `time_of_start` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_sessions_films_idx` (`film_id` ASC) VISIBLE,
+  CONSTRAINT `fk_sessions_films`
+    FOREIGN KEY (`film_id`)
+    REFERENCES `cinema`.`films` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION);
+
+
+CREATE TABLE `cinema`.`sold_tikets` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `place_number` INT NOT NULL,
+  `session_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_tikets_sessions_idx` (`session_id` ASC) VISIBLE,
+  CONSTRAINT `fk_tikets_sessions`
+    FOREIGN KEY (`session_id`)
+    REFERENCES `cinema`.`sessions` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE);
+
+
+2.Заполнение таблиц несколькими значениями:
+2.1.
+NSERT INTO `cinema`.`films` (`id`, `title`, `length_minutes`) VALUES ('1', 'Togo', '120');
+INSERT INTO `cinema`.`films` (`id`, `title`, `length_minutes`) VALUES ('2', 'Art of flight', '90');
+INSERT INTO `cinema`.`films` (`id`, `title`, `length_minutes`) VALUES ('3', 'Water', '60');
+INSERT INTO `cinema`.`films` (`id`, `title`, `length_minutes`) VALUES ('4', 'Street dance', '90');
+INSERT INTO `cinema`.`films` (`id`, `title`, `length_minutes`) VALUES ('5', 'Dune', '60');
+
+2.2.
+INSERT INTO `cinema`.`sessions` (`id`, `film_id`, `price`, `time_of_start`) VALUES ('1', '1', '100', '2022-01-23 09:00:00');
+INSERT INTO `cinema`.`sessions` (`id`, `film_id`, `price`, `time_of_start`) VALUES ('2', '2', '200', '2022-01-23 10:30:00');
+INSERT INTO `cinema`.`sessions` (`id`, `film_id`, `price`, `time_of_start`) VALUES ('3', '1', '200', '2022-01-23 12:00:00');
+INSERT INTO `cinema`.`sessions` (`id`, `film_id`, `price`, `time_of_start`) VALUES ('4', '3', '200', '2022-01-23 14:00:00');
+INSERT INTO `cinema`.`sessions` (`id`, `film_id`, `price`, `time_of_start`) VALUES ('5', '4', '300', '2022-01-23 15:00:00');
+INSERT INTO `cinema`.`sessions` (`id`, `film_id`, `price`, `time_of_start`) VALUES ('6', '5', '300', '2022-01-23 16:30:00');
+INSERT INTO `cinema`.`sessions` (`id`, `film_id`, `price`, `time_of_start`) VALUES ('7', '2', '300', '2022-01-23 17:30:00');
+INSERT INTO `cinema`.`sessions` (`id`, `film_id`, `price`, `time_of_start`) VALUES ('8', '3', '400', '2022-01-23 18:30:00');
+INSERT INTO `cinema`.`sessions` (`id`, `film_id`, `price`, `time_of_start`) VALUES ('9', '5', '400', '2022-01-23 20:10:00');
+INSERT INTO `cinema`.`sessions` (`id`, `film_id`, `price`, `time_of_start`) VALUES ('10', '5', '400', '2022-01-23 22:30:00');
+
+2.3.
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('1', '10', '1');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('2', '11', '1');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('3', '5', '3');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('4', '6', '3');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('5', '7', '3');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('6', '1', '11');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('7', '2', '11');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('8', '6', '5');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('9', '1', '4');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('10', '2', '4');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('11', '3', '4');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('12', '9', '8');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('13', '10', '8');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('14', '20', '8');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('15', '21', '8');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('16', '1', '7');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('17', '2', '7');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('18', '8', '10');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('19', '9', '10');
+INSERT INTO `cinema`.`sold_tikets` (`id`, `place_number`, `session_id`) VALUES ('20', '10', '10');
+
+ЗАПРОСЫ:
+
+Для первых двух запросов создана вот такая вьюшка для работы:
+
+CREATE VIEW SessionDetails AS
+SELECT id, film_id, time_of_start, LEAD(time_of_start, 1) OVER (order by time_of_start)
+as time_of_next_start,
+LEAD(film_id, 1) OVER (order by time_of_start) as next_film_id,
+date_add(time_of_start, interval (SELECT films.length_minutes FROM films
+WHERE films.id=sessions.film_id) minute) as time_of_end
+FROM sessions;
+
+Запрос1: ошибки в расписании (фильмы накладываются друг на друга), отсортированные по возрастанию времени. Выводить надо колонки «фильм 1», «время начала», «длительность», «фильм 2», «время начала», «длительность»;
+
+SELECT films.title as film_1, SessionDetails.time_of_start as time_of_start_1,
+films.length_minutes as length_1,
+(SELECT films.title FROM films where SessionDetails.next_film_id=films.id) as film_2,
+SessionDetails.time_of_next_start as time_of_start_2,
+(SELECT films.length_minutes FROM films where SessionDetails.next_film_id=films.id) as length_2
+FROM SessionDetails
+INNER JOIN films ON
+SessionDetails.film_id = films.id
+WHERE time_of_end > time_of_next_start;
+
+Запрос 2: перерывы 30 минут и более между фильмами — выводить по уменьшению длительности перерыва. Колонки «фильм 1», «время начала», «длительность», «время начала второго фильма», «длительность перерыва»;
+
+SELECT films.title as film_1, SessionDetails.time_of_start,
+ films.length_minutes as length_1, SessionDetails.time_of_next_start,
+ timestampdiff(MINUTE, SessionDetails.time_of_end, SessionDetails.time_of_next_start) as pause
+ FROM SessionDetails
+ INNER JOIN films ON SessionDetails.film_id=films.id
+ HAVING pause > 30 order by pause;
+
+Запрос 3:список фильмов, для каждого — с указанием общего числа посетителей за все время, среднего числа зрителей за сеанс и общей суммы сборов по каждому фильму (отсортировать по убыванию прибыли). Внизу таблицы должна быть строчка «итого», содержащая данные по всем фильмам сразу;
+
+CREATE VIEW VisitorsCount AS
+SELECT films.title, COUNT(sold_tikets.place_number) AS visitors, sold_tikets.session_id
+FROM sold_tikets
+INNER JOIN sessions
+ON sold_tikets.session_id=sessions.id
+INNER JOIN films
+ON sessions.film_id=films.id
+GROUP BY sold_tikets.session_id;
+
+CREATE VIEW Average AS
+SELECT title, AVG(visitors) as average FROM VisitorsCount GROUP BY title;
+
+SELECT films.title, COUNT(sold_tikets.place_number) AS number_of_visitors, SUM(sessions.price) as profit,
+Average.average as average_visitors_count
+FROM sold_tikets
+INNER JOIN sessions
+ON sold_tikets.session_id=sessions.id
+INNER JOIN films
+ON sessions.film_id=films.id
+INNER JOIN Average
+ON films.title=Average.title
+GROUP BY films.title
+UNION
+SELECT 'ИТОГО', COUNT(sold_tikets.place_number) AS number_of_visitors, SUM(sessions.price) as profit,
+Average.average as average_visitors_count
+FROM sold_tikets
+INNER JOIN sessions
+ON sold_tikets.session_id=sessions.id
+INNER JOIN films
+ON sessions.film_id=films.id
+INNER JOIN Average
+ON films.title=Average.title;
+
+Запрос 4: число посетителей и кассовые сборы, сгруппированные по времени начала фильма: с 9 до 15, с 15 до 18, с 18 до 21, с 21 до 00:00 (сколько посетителей пришло с 9 до 15 часов и т.д.).
+
+SELECT COUNT(sold_tikets.place_number), SUM(sessions.price), MIN(sessions.time_of_start), MAX(sessions.time_of_start)
+FROM sold_tikets INNER JOIN sessions
+ON sessions.id = sold_tikets.session_id
+WHERE time_of_start BETWEEN '2022-01-23 09%' AND '2022-01-23 15%'
+UNION
+SELECT count(sold_tikets.place_number), sum(sessions.price), min(sessions.time_of_start), max(sessions.time_of_start)
+FROM sold_tikets INNER JOIN sessions
+ON sessions.id = sold_tikets.session_id
+WHERE time_of_start BETWEEN '2022-01-23 15:01%' AND '2022-01-23 18%'
+UNION
+SELECT count(sold_tikets.place_number), sum(sessions.price), min(sessions.time_of_start), max(sessions.time_of_start)
+FROM sold_tikets INNER JOIN sessions
+ON sessions.id = sold_tikets.session_id
+WHERE time_of_start BETWEEN '2022-01-23 18:01%' AND '2022-01-23 21%'
+UNION
+SELECT count(sold_tikets.place_number), sum(sessions.price), min(sessions.time_of_start), MAX(sessions.time_of_start)
+FROM sold_tikets INNER JOIN sessions
+ON sessions.id = sold_tikets.session_id
+WHERE time_of_start BETWEEN '2022-01-23 21:01%' AND '2022-01-23 00%';
